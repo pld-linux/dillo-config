@@ -7,11 +7,10 @@ License:	Unknown
 Group:		X11/Applications/Networking
 Source0:	http://www.see.ed.ac.uk/~rjt/dillo/%{name}
 # Source0-md5:	40129e1364bd7e0ed12322c58a09aa5d
-URL:		http://www.see.ed.ac.uk/~rjt/dillo/dillo-config
+URL:		http://www.see.ed.ac.uk/~rjt/dillo/config.html
 Requires:	tk
 BuildArch:	noarch
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
-
 
 %description
 Dillo configuration script, by Bob Thomson (rjt@ee.ed.ac.uk).
