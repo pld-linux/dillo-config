@@ -1,0 +1,354 @@
+#!/bin/sh
+# Find wish, even though the path is unknown, and run it on this script. \
+exec wish "$0" "$@"
+
+# Dillo configuration script, by Bob Thomson (rjt@ee.ed.ac.uk).
+
+# The settings are kept in the global array called $prefs[].
+# It is indexed by key name.
+
+# use the file in the home directory, or in /etc ??
+proc find_source_file {} {
+    
+}
+
+# this make some of the more awkward options into a convenient form
+proc unpack_options {} {
+    global prefs width height colours
+    regexp {([0-9]+)[xX]([0-9]+)} $prefs(geometry) ignore width height
+    
+    # tcl/tk doesn't like C-style colours
+    foreach c {link_color visited_color bg_color text_color} {
+	regsub {0[xX]} $prefs($c) \# colours($c)
+    }
+}
+
+# the reverse of unpack_options
+proc pack_options {} {
+    global prefs width height colours
+    set prefs(geometry) ${width}x${height}
+
+    # dillo doesn't like tcl/tk-style colours
+    foreach c {link_color visited_color bg_color text_color} {
+	regsub \# $colours($c) "0x" prefs($c)
+    }
+}
+
+# update the display for new settings
+proc refresh {} {
+    global colours
+    .entries.b18 configure -bg $colours(link_color) \
+	-activebackground $colours(link_color)
+    .entries.b19 configure -bg $colours(visited_color) \
+	-activebackground $colours(visited_color)
+    .entries.b20 configure -bg $colours(text_color) \
+	-activebackground $colours(text_color)
+    .entries.b21 configure -bg $colours(bg_color) \
+	-activebackground $colours(bg_color)
+}
+
+# set everything to reasonable values
+proc load_defaults {} {
+    global prefs
+    # these values must be the same as the defaults that dillo uses
+    array set prefs {
+	geometry 640x550
+	use_dicache NO
+	font_factor 1.0
+	use_oblique NO
+	show_alt NO
+	limit_text_width NO
+	home "http://dillo.sourceforge.net/"
+	http_proxy ""
+	no_proxy ""
+	bg_color 0xd6d6c0
+	text_color 0x000000
+	link_color 0x0000ff
+	visited_color 0x800080
+	allow_white_bg NO
+	force_my_colors NO
+	force_visited_color NO
+	panel_size tiny
+	small_icons NO
+	show_back YES
+	show_forw YES
+	show_home YES   
+	show_reload YES
+	show_save YES
+	show_stop YES
+	show_menubar YES
+	show_clear_url YES
+	show_url YES
+	show_progress_box YES
+	transient_dialogs NO
+    }
+    unpack_options
+}
+
+# read from file f, which must be readable
+proc read_a_file {f} {
+    global prefs
+    set fh [open $f "r"]
+    while {![eof $fh]} {
+	gets $fh line
+	# this next line skips comments, and finds options
+	if {![regexp {^[ \t]*\#} $line]
+		&& [regexp {([^= \t]+)[ \t]*=[ \t]*(.+)} $line ignore a b]} {
+	    set prefs($a) $b
+	}
+    }
+    close $fh
+}
+
+proc read_prefs {} {
+    global prefs oldprefs
+    # this next line makes sure all parameters are set, if not in the file
+    load_defaults
+    if {[file exists "~/.dillo/dillorc"] 
+	&&[file readable "~/.dillo/dillorc"]} {
+	read_a_file "~/.dillo/dillorc"
+    } else {
+	# read /etc/dillorc if no per-user config file
+	if {[file exists "/etc/dillorc"] 
+	    &&[file readable "/etc/dillorc"]} {
+	    read_a_file "/etc/dillorc"
+	}
+    }
+    unpack_options
+    array set oldprefs [array get prefs]
+}
+
+proc write_prefs {} {
+    global prefs oldprefs
+    pack_options
+
+    # create the config dir?
+    if {[file exists "~/.dillo"] == 0} {
+	file mkdir "~/.dillo"
+    }
+
+    if {![file exists "~/.dillo/dillorc"] 
+	|| [file writable "~/.dillo/dillorc"]} {
+	set fh [open "~/.dillo/dillorc" "w"]
+	set keys [array names prefs]
+	foreach k $keys {
+	    # only write the line if there is a value
+	    if {[regexp {[^ \t]} $prefs($k)]} {
+		puts $fh ${k}=$prefs($k)
+	    }
+	}
+	close $fh
+    } else {
+	tk_dialog .broken "ERROR" \
+	    "The dillo configuration file \"~/.dillo/dillorc\" is unwritable!"\
+	    "" 0 "OK"
+    }
+    array set oldprefs [array get prefs]
+}
+
+# leave, possibly popping up a dialogue asking whether or not to save
+proc quit_save {} {
+    global prefs oldprefs
+    pack_options
+
+    set modified 0
+    foreach {k v} [array get prefs] {
+	if {$v != $oldprefs($k)} {
+	    set modified 1
+	    break
+	}
+    }
+
+    if {$modified} {
+	set button [tk_dialog .savepopup "SAVE?" \
+			"Save changes before quitting?"\
+			"" 0 "Yes" "No" "Cancel"]
+	if {$button == 0} write_prefs
+	if {$button == 0 || $button == 1} exit
+    } else {
+	exit
+    }
+}
+
+# construct the top-level window
+proc build_window {} {
+    global prefs colours
+    frame .entries
+    frame .urls
+    frame .boxes
+    frame .buttons
+
+    label .entries.l1 -text "Window width"
+    entry .entries.e1 -textvariable width -width 5 \
+	-validate key -vcmd {string is integer %P}
+    label .entries.l2 -text "Window height"
+    entry .entries.e2 -textvariable height -width 5 \
+	-validate key -vcmd {string is integer %P}
+    label .entries.l3 -text "Font scale factor"
+    entry .entries.e3 -textvariable prefs(font_factor) -width 5 \
+	-validate key -vcmd {string is double %P}
+    checkbutton .boxes.c4 -text "Use oblique fonts" -onvalue YES -offvalue NO \
+	    -variable prefs(use_oblique)
+    checkbutton .boxes.c5 -text "Pop-up text for images" -onvalue YES \
+	-offvalue NO -variable prefs(show_alt)
+    label .urls.l6 -text "Home page URL"
+    entry .urls.e4 -textvariable prefs(home) -width 64
+    checkbutton .boxes.c7 -text "Allow white backgrounds" -onvalue YES \
+	-offvalue NO -variable prefs(allow_white_bg)
+    checkbutton .boxes.c8 -text "Show \"back\" button" -onvalue YES \
+	-offvalue NO -variable prefs(show_back)
+    checkbutton .boxes.c9 -text "Show \"forward\" button" -onvalue YES \
+	-offvalue NO -variable prefs(show_forw)
+    checkbutton .boxes.c10 -text "Show \"home\" button" -onvalue YES \
+	-offvalue NO -variable prefs(show_home)
+    checkbutton .boxes.c11 -text "Show \"reload\" button" -onvalue YES \
+	-offvalue NO -variable prefs(show_reload)
+    checkbutton .boxes.c12 -text "Show \"save\" button" -onvalue YES \
+	-offvalue NO -variable prefs(show_save)
+    checkbutton .boxes.c13 -text "Show \"stop\" button" -onvalue YES \
+	-offvalue NO -variable prefs(show_stop)
+    checkbutton .boxes.c14 -text "Show menu bar" -onvalue YES -offvalue NO \
+	    -variable prefs(show_menubar)
+    checkbutton .boxes.c15 -text "Show URL bar" -onvalue YES -offvalue NO \
+	    -variable prefs(show_url)
+    checkbutton .boxes.c16 -text "Show progress box" -onvalue YES \
+	-offvalue NO -variable prefs(show_progress_box)
+    checkbutton .boxes.c17 -text "Always use default colours" -onvalue YES \
+	-offvalue NO -variable prefs(force_my_colors)
+    checkbutton .boxes.c23 -text "Override visited link colours" -onvalue YES \
+	-offvalue NO -variable prefs(force_visited_color)
+    checkbutton .boxes.c18 -text "Use small icons" -onvalue YES -offvalue NO \
+	    -variable prefs(small_icons)
+    checkbutton .boxes.c19 -text "Limit the width of text" -onvalue YES \
+	-offvalue NO -variable prefs(limit_text_width)
+    checkbutton .boxes.c20 -text "Cache decompressed images" -onvalue YES \
+	-offvalue NO -variable prefs(use_dicache)
+    checkbutton .boxes.c21 -text "Show clear URL button" -onvalue YES \
+	-offvalue NO -variable prefs(show_clear_url)
+    checkbutton .boxes.c22 -text "Allow transient dialogs" -onvalue YES \
+	-offvalue NO -variable prefs(transient_dialogs)
+    label .entries.l29 -text "Panel size"
+    tk_optionMenu .entries.o1 prefs(panel_size) tiny medium large
+    label .entries.l22 -text "Link colour"
+    # note that named colours work in tcl/tk; eg. "blue" will not break this
+    button .entries.b18 -bg $colours(link_color) \
+	-activebackground $colours(link_color) \
+	-command {
+	    set c [tk_chooseColor -initialcolor $colours(link_color) \
+		       -title "Set link colour"]
+	    if {$c != ""} {
+		set colours(link_color) $c
+		.entries.b18 configure -bg $c -activebackground $c
+	    }
+	}
+    label .entries.l23 -text "Visited link colour"
+    button .entries.b19 -bg $colours(visited_color) -activebackground \
+	$colours(visited_color) \
+	-command {
+	    set c [tk_chooseColor -initialcolor $colours(visited_color) \
+		       -title "Set visited link colour"]
+	    if {$c != ""} {
+		set colours(visited_color) $c
+		.entries.b19 configure -bg $c -activebackground $c
+	    }
+	}
+    label .entries.l24 -text "Text colour"
+    button .entries.b20 -bg $colours(text_color) \
+	-activebackground $colours(text_color) \
+	-command {
+	    set c [tk_chooseColor -initialcolor $colours(text_color) \
+		       -title "Set text colour"]
+	    if {$c != ""} {
+		set colours(text_color) $c
+		.entries.b20 configure -bg $c -activebackground $c
+	    }
+	}
+    label .entries.l25 -text "Background colour"
+    button .entries.b21 -bg $colours(bg_color) \
+	-activebackground $colours(bg_color) \
+	-command {
+	    set c [tk_chooseColor -initialcolor $colours(bg_color) \
+		       -title "Set background colour"]
+	    if {$c != ""} {
+		set colours(bg_color) $c
+		.entries.b21 configure -bg $c -activebackground $c
+	    }
+	}
+    label .urls.l26 -text "Proxy URL"
+    entry .urls.e27 -textvariable prefs(http_proxy) -width 64
+    label .urls.l28 -text "Unproxied domain"
+    entry .urls.e29 -textvariable prefs(no_proxy) -width 64
+
+    button .buttons.b1 -text "Use defaults" -command {
+	load_defaults
+	refresh
+    }
+    button .buttons.b2 -text "Reload" -command {
+	read_prefs
+	refresh
+    }
+    button .buttons.b3 -text "Save" -command write_prefs
+    button .buttons.b4 -text "Quit" -command quit_save
+
+    grid .buttons.b1 -row 0 -column 1
+    grid .buttons.b2 -row 0 -column 2
+    grid .buttons.b3 -row 0 -column 3
+    grid .buttons.b4 -row 0 -column 4
+
+    grid .boxes.c8 -row 0 -column 0 -sticky w
+    grid .boxes.c9 -row 1 -column 0 -sticky w
+    grid .boxes.c10 -row 2 -column 0 -sticky w
+    grid .boxes.c11 -row 3 -column 0 -sticky w
+    grid .boxes.c12 -row 4 -column 0 -sticky w
+    grid .boxes.c13 -row 5 -column 0 -sticky w
+    grid .boxes.c14 -row 6 -column 0 -sticky w
+    grid .boxes.c15 -row 7 -column 0 -sticky w
+    grid .boxes.c21 -row 8 -column 0 -sticky w
+    grid .boxes.c16 -row 9 -column 0 -sticky w
+    grid .boxes.c4 -row 0 -column 1 -sticky w
+    grid .boxes.c5 -row 1 -column 1 -sticky w
+    grid .boxes.c7 -row 2 -column 1 -sticky w
+    grid .boxes.c17 -row 3 -column 1 -sticky w
+    grid .boxes.c23 -row 4 -column 1 -sticky w
+    grid .boxes.c18 -row 5 -column 1 -sticky w
+    grid .boxes.c22 -row 6 -column 1 -sticky w
+    grid .boxes.c19 -row 7 -column 1 -sticky w
+    grid .boxes.c20 -row 8 -column 1 -sticky w
+
+    grid .entries.l1 -row 0 -column 0 -sticky e
+    grid .entries.e1 -row 0 -column 1 -sticky w
+    grid .entries.l2 -row 1 -column 0 -sticky e
+    grid .entries.e2 -row 1 -column 1 -sticky w
+    grid .entries.l3 -row 2 -column 0 -sticky e
+    grid .entries.e3 -row 2 -column 1 -sticky w
+    grid .entries.l22 -row 3 -column 0 -sticky e
+    grid .entries.b18 -row 3 -column 1 -sticky w
+    grid .entries.l23 -row 4 -column 0 -sticky e
+    grid .entries.b19 -row 4 -column 1 -sticky w
+    grid .entries.l24 -row 5 -column 0 -sticky e
+    grid .entries.b20 -row 5 -column 1 -sticky w
+    grid .entries.l25 -row 6 -column 0 -sticky e
+    grid .entries.b21 -row 6 -column 1 -sticky w
+    grid .entries.l29 -row 7 -column 0 -sticky e
+    grid .entries.o1 -row 7 -column 1 -sticky w
+
+    grid .urls.l6 -row 0 -column 0 -sticky e
+    grid .urls.e4 -row 0 -column 1 -sticky "ew"
+    grid .urls.l26 -row 1 -column 0 -sticky e
+    grid .urls.e27 -row 1 -column 1 -sticky "ew"
+    grid .urls.l28 -row 2 -column 0 -sticky e
+    grid .urls.e29 -row 2 -column 1 -sticky "ew"
+
+    grid .buttons -row 2 -column 0 -columnspan 2 -sticky "ew"
+    grid .urls -row 1 -column 0 -columnspan 2 -sticky "ew"
+    grid .boxes -row 0 -column 1 -sticky e
+    grid .entries -row 0 -column 0 -sticky w
+#    pack .buttons -side bottom -fill x -expand 1
+#    pack .urls -side bottom -fill x -expand 1
+#    pack .boxes -side left
+#    pack .entries -side right
+
+}
+
+read_prefs
+build_window
