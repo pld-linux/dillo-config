@@ -3,7 +3,7 @@ Summary(pl):	Skrypt configuruj±cy dillo
 Name:		dillo-config
 Version:	1.0
 Release:	3
-License:	Unknown
+License:	unknown
 Group:		X11/Applications/Networking
 Source0:	http://oldeee.see.ed.ac.uk/~rjt/dillo/%{name}
 URL:		http://www.see.ed.ac.uk/~rjt/dillo/config.html
