@@ -8,8 +8,8 @@ Group:		X11/Applications/Networking
 Source0:	http://www.ee.ed.ac.uk/~rjt/dillo/%{name}
 URL:		http://www.ee.ed.ac.uk/~rjt/dillo/config.html
 Requires:	tk
+BuildArch:	noarch
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
-BuildArch:   noarch
 
 %define		_prefix		/usr/X11R6
 %define		_mandir		%{_prefix}/man
@@ -24,13 +24,10 @@ Skrypt konfiguruj±cy dillo napisany przez Boba Thomsona
 %prep
 %setup -q -c -T
 
-%build
-
 %install
 rm -rf $RPM_BUILD_ROOT
-install -d $RPM_BUILD_ROOT
-
 install -d $RPM_BUILD_ROOT%{_bindir}
+
 install %{SOURCE0} $RPM_BUILD_ROOT%{_bindir}
 
 %clean
