@@ -2,7 +2,7 @@ Summary:	Dillo configuration script
 Summary(pl):	Skrypt configuruj±cy dillo
 Name:		dillo-config
 Version:	1.0
-Release:	2
+Release:	3
 License:	Unknown
 Group:		X11/Applications/Networking
 Source0:	http://oldeee.see.ed.ac.uk/~rjt/dillo/%{name}
