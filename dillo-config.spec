@@ -6,6 +6,7 @@ Release:	1
 License:	Unknown
 Group:		X11/Applications/Networking
 Source0:	http://www.ee.ed.ac.uk/~rjt/dillo/%{name}
+# Source0-md5:	40129e1364bd7e0ed12322c58a09aa5d
 URL:		http://www.ee.ed.ac.uk/~rjt/dillo/config.html
 Requires:	tk
 BuildArch:	noarch
