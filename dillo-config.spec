@@ -1,5 +1,5 @@
 Summary:	Dillo configuration script
-Summary(pl.UTF-8):   Skrypt configurujący dillo
+Summary(pl.UTF-8):	Skrypt configurujący dillo
 Name:		dillo-config
 Version:	1.0
 Release:	3
