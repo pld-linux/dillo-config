@@ -1,5 +1,5 @@
 Summary:	Dillo configuration script
-Summary(pl):	Skrypt configuruj±cy dillo
+Summary(pl.UTF-8):   Skrypt configurujÄ…cy dillo
 Name:		dillo-config
 Version:	1.0
 Release:	3
@@ -14,8 +14,8 @@ BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 %description
 Dillo configuration script, by Bob Thomson (rjt@ee.ed.ac.uk).
 
-%description -l pl
-Skrypt konfiguruj±cy dillo napisany przez Boba Thomsona
+%description -l pl.UTF-8
+Skrypt konfigurujÄ…cy dillo napisany przez Boba Thomsona
 (rjt@ee.ed.ac.uk).
 
 %prep
